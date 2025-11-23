@@ -1,0 +1,1300 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bitget X Moto Gp</title>
+    <!-- TELEGRAM WEB APP SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+            -webkit-touch-callout: none; 
+        }
+        #ui-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 90%;
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #score-board {
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        #shield-status {
+            color: #0088ff;
+            text-shadow: 0 0 10px #0088ff;
+            font-size: 20px;
+            font-weight: bold;
+            display: none; 
+        }
+        
+        /* Ortak Modal Stili */
+        .modal {
+            display: none;
+            position: fixed; 
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(0, 15, 30, 0.95);
+            border: 2px solid #00ffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+            z-index: 20;
+            width: 85%;
+            max-width: 450px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+
+        /* Başlangıç Ekranı Özel */
+        #start-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            width: 90%; /* Mobilde taşmayı önle */
+        }
+
+
+        h1 {
+            color: #ff0055;
+            text-shadow: 0 0 10px #ff0055;
+            margin-top: 0;
+            font-size: 28px;
+        }
+
+
+        h1.game-title {
+            color: #00ffff;
+            text-shadow: 0 0 15px #00ffff;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            color: #00ffff;
+            margin-top: 0;
+        }
+
+
+        p {
+            color: #fff;
+            font-size: 18px;
+        }
+
+
+        .legend {
+            font-size: 14px; 
+            color: #ddd; 
+            margin: 5px 0;
+            text-align: left;
+            width: 100%;
+            padding-left: 20px;
+        }
+
+
+        input[type="text"] {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            padding: 10px;
+            font-family: inherit;
+            font-size: 18px;
+            width: 80%;
+            margin-bottom: 15px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            box-shadow: 0 0 10px #00ffff;
+        }
+
+
+        button {
+            background: #00ffff;
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 8px;
+            border-radius: 5px;
+            transition: all 0.2s;
+            font-family: inherit;
+            touch-action: manipulation;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px #00ffff;
+        }
+        button.secondary {
+            background: transparent;
+            border: 1px solid #00ffff;
+            color: #00ffff;
+        }
+        button.big-btn {
+            font-size: 24px;
+            padding: 20px 40px;
+            background: linear-gradient(45deg, #00ffff, #0088ff);
+            box-shadow: 0 0 20px #00ffff;
+        }
+
+
+        /* Liderlik Tablosu Listesi */
+        #leaderboard-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+        }
+        #leaderboard-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            color: #fff;
+            font-size: 14px;
+        }
+        #leaderboard-list li:nth-child(1) { color: #ffd700; text-shadow: 0 0 5px #ffd700; } 
+        #leaderboard-list li:nth-child(2) { color: #c0c0c0; } 
+        #leaderboard-list li:nth-child(3) { color: #cd7f32; } 
+
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(0, 255, 255, 0.7);
+            font-size: 14px;
+            pointer-events: none;
+        }
+        
+        /* Yükleniyor Göstergesi */
+        #loading {
+            display: none;
+            color: #00ffff;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+
+        /* Telegram Paylaşım Butonu */
+        .telegram-share-btn {
+            background: #0088cc !important;
+            color: white !important;
+            box-shadow: 0 0 15px #0088cc !important;
+            display: none; /* JS ile açılacak */
+            margin-top: 10px;
+        }
+    </style>
+    
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+
+    <div id="ui-container">
+        <div id="score-board">BGB: 0</div>
+        <div id="shield-status">🛡️ KALKAN AKTİF</div>
+    </div>
+
+
+    <!-- Başlangıç Ekranı -->
+    <div id="start-screen" class="modal" style="display: flex;">
+        <h1 class="game-title">Bitget X Moto Gp</h1>
+        <div class="legend" style="color: #00ff00;">🟢 PUMP: BGB +%10</div>
+        <div class="legend" style="color: #ff0000;">🔴 DUMP: BGB -%10</div>
+        <div class="legend" style="color: #0088ff;">🛡️ KALKAN: 5sn Koruma</div>
+        <div class="legend" style="color: #ff0055;">🟥 ENGEL: REKT</div>
+        <br>
+        <button class="big-btn" onclick="startGame()">BAŞLA</button>
+    </div>
+
+
+    <!-- Oyun Bitti / Skor Kaydetme Ekranı -->
+    <div id="game-over-modal" class="modal">
+        <h1>REKT!</h1>
+        <p>Elde Edilen BGB: <span id="final-score">0</span></p>
+        
+        <div id="save-score-section">
+            <p style="font-size: 14px; color: #aaa;">İsmini Yaz ve Liderlik Listesine Gir:</p>
+            <input type="text" id="player-name" placeholder="Trader Adı" maxlength="12">
+            <br>
+            <button onclick="saveScoreAndShowLeaderboard()">SKORU KAYDET</button>
+        </div>
+        
+        <!-- YENİ GEMINI API ÖZELLİĞİ -->
+        <button onclick="generateMarketCommentary()" id="gemini-button" style="margin-top: 20px; background: #ff0aa0; box-shadow: 0 0 15px #ff0aa0;">
+            ✨ Piyasa Yorumu Al
+        </button>
+        
+        <!-- TELEGRAM PAYLAŞ BUTONU -->
+        <button onclick="shareToTelegram()" id="share-btn" class="telegram-share-btn">
+            ✈️ Kanalda Paylaş
+        </button>
+
+
+        <div id="commentary-loading" style="display: none; color: #ff0aa0; margin-top: 10px;">
+            Yapay Zeka Analisti Yorumluyor...
+        </div>
+        <div id="commentary-output" style="margin-top: 15px; padding: 10px; border: 1px dashed #ff0aa0; color: #fff; font-style: italic; display: none; text-align: left; font-size: 15px;">
+        </div>
+        
+        <div id="loading">Veri tabanına bağlanılıyor...</div>
+        <button class="secondary" onclick="resetGame()">TEKRAR OYNA</button>
+        <button class="secondary" onclick="showLeaderboardOnly()">SIRALAMAYI GÖR</button>
+    </div>
+
+
+    <!-- Sadece Liderlik Tablosu Ekranı -->
+    <div id="leaderboard-modal" class="modal">
+        <h2>🏆 EN İYİ TRADERLAR 🏆</h2>
+        <ul id="leaderboard-list">
+            <li>Yükleniyor...</li>
+        </ul>
+        <button onclick="closeLeaderboard()">KAPAT</button>
+    </div>
+
+
+    <script>
+        // --- GEMINI API HELPERS ---
+        const API_MODEL = 'gemini-2.5-flash-preview-09-2025';
+        const apiKey = ""; 
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${API_MODEL}:generateContent?key=${apiKey}`;
+
+
+        // Global değişken: AI Yorumunu saklamak için
+        let lastCommentary = "";
+
+
+        // Üstel Geri Çekilme (Exponential Backoff)
+        async function retryFetch(url, options, maxRetries = 3) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.status === 429 && i < maxRetries - 1) {
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue; 
+                    }
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    if (i === maxRetries - 1) throw error;
+                    const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+        
+        window.generateMarketCommentary = async function() {
+            const outputDiv = document.getElementById('commentary-output');
+            const loadingDiv = document.getElementById('commentary-loading');
+            const button = document.getElementById('gemini-button');
+            const shareBtn = document.getElementById('share-btn');
+
+
+            if (outputDiv) outputDiv.style.display = 'none';
+            if (shareBtn) shareBtn.style.display = 'none';
+            if (loadingDiv) loadingDiv.style.display = 'block';
+            if (button) button.disabled = true;
+
+
+            const systemPrompt = `Sen, hızlı ve dramatik piyasa analizleri yapan, kripto ve finans temalı bir analistsin. Oyuncunun BGB skoruna göre, oyunun bittiği anın piyasa durumunu tek paragraf halinde, heyecanlı ve akılda kalıcı bir dille yorumla. Yorumun tamamen Türkçe olmalıdır. Oyundaki terimleri (PUMP, DUMP, REKT) kullanabilirsin.`;
+            const userQuery = `Oyun skoru BGB: ${score}. Bu skoru baz alarak, şu anki piyasa durumu hakkında bir yorum yap.`;
+
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+
+            const options = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            };
+
+
+            try {
+                const result = await retryFetch(API_URL, options);
+                const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || "Yapay zeka yorumu alınamadı.";
+                
+                lastCommentary = text; // Paylaşım için sakla
+                if (outputDiv) {
+                    outputDiv.innerHTML = `<span style="color:#00ffff;">AI YORUMU:</span> ${text}`;
+                    outputDiv.style.display = 'block';
+                }
+                
+                // Yorum geldikten sonra paylaş butonunu aç
+                if (shareBtn) shareBtn.style.display = 'inline-block';
+
+
+            } catch (error) {
+                console.error("Gemini API hatası:", error);
+                if (outputDiv) {
+                    outputDiv.innerHTML = `<span style="color:red;">Hata:</span> Yapay zeka yorumu yüklenirken bir sorun oluştu.`;
+                    outputDiv.style.display = 'block';
+                }
+            } finally {
+                if (loadingDiv) loadingDiv.style.display = 'none';
+                if (button) {
+                    button.disabled = false;
+                    button.style.display = 'none'; 
+                }
+            }
+        };
+
+
+        // --- TELEGRAM ENTEGRASYONU ---
+        function initTelegram() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.ready();
+                tg.expand(); // Uygulamayı tam ekran yap
+
+
+                // Tema renklerini ayarla
+                if (tg.colorScheme === 'dark') {
+                    document.body.style.backgroundColor = tg.themeParams.bg_color || '#000';
+                }
+
+
+                // Kullanıcı adını otomatik doldur
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    const user = tg.initDataUnsafe.user;
+                    const playerName = user.first_name + (user.last_name ? " " + user.last_name : "");
+                    const nameInput = document.getElementById('player-name');
+                    if (nameInput) {
+                        nameInput.value = playerName;
+                    }
+                }
+            }
+        }
+
+
+        window.shareToTelegram = function() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                const shareText = `🏍️ Bitget GP Sonucu!\n\n💰 Skor: ${score} BGB\n\n🧠 AI Analizi: ${lastCommentary}\n\nSen de oyna ve REKT olma! 🚀`;
+                
+                // Telegram paylaşım linki oluştur
+                const url = "https://t.me/share/url?url=" + encodeURIComponent(window.location.href) + "&text=" + encodeURIComponent(shareText);
+                
+                // WebApp içindeysek openTelegramLink kullan
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    tg.openTelegramLink(url);
+                } else {
+                    // Tarayıcıdaysak yeni sekme aç
+                    window.open(url, '_blank');
+                }
+            } else {
+                alert("Telegram entegrasyonu bulunamadı, link kopyalanıyor...");
+                // Fallback (İsteğe bağlı)
+            }
+        };
+
+
+        // --- FIREBASE AYARLARI ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'neon-motor-game';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        
+        let db, auth, user;
+
+
+        async function initFirebase() {
+            if (!firebaseConfig || typeof firebase === 'undefined') {
+                console.warn("Firebase yapılandırması eksik.");
+                return;
+            }
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+                auth = firebase.auth();
+
+
+                const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                if (token) {
+                    await auth.signInWithCustomToken(token).catch(async () => await auth.signInAnonymously());
+                } else {
+                    await auth.signInAnonymously();
+                }
+
+
+                auth.onAuthStateChanged((u) => {
+                    user = u;
+                });
+            } catch (error) {
+                console.error("Firebase başlatma hatası:", error);
+            }
+        }
+
+
+        // --- OYUN DEĞİŞKENLERİ ---
+        let scene, camera, renderer, clock;
+        let bike, shieldMesh; 
+        let gridHelper;
+        let objects = []; 
+        let particles = []; 
+        
+        let score = 0;
+        let speed = 0.4; 
+        let isGameRunning = false; 
+        let isCrashed = false; 
+        let frameId;
+        
+        let shieldActive = false;
+        let shieldTimer = 0;
+        
+        const COLOR_CYAN = 0x00ffff;
+        const COLOR_NEON_RED = 0xff0055;
+        const COLOR_GREEN = 0x00ff00;
+        const COLOR_BLUE = 0x0088ff;
+
+
+        let targetX = 0;
+        let isInputActive = false;
+
+
+        window.onload = function() {
+            initTelegram(); // Telegram SDK Başlat
+            initFirebase(); 
+            init();
+            animate();
+            
+            const inputField = document.getElementById('player-name');
+            if (inputField) {
+                inputField.addEventListener('focus', () => { isInputActive = true; });
+                inputField.addEventListener('blur', () => { isInputActive = false; });
+            }
+        };
+
+
+        function init() {
+            clock = new THREE.Clock();
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050510);
+            scene.fog = new THREE.FogExp2(0x050510, 0.02);
+
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 2.5, 5.5); 
+            camera.lookAt(0, 0, -4);
+
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+            
+            const pointLight = new THREE.PointLight(COLOR_CYAN, 2, 15);
+            pointLight.position.set(0, 0.5, -1);
+            scene.add(pointLight);
+
+
+            const planeGeometry = new THREE.PlaneGeometry(200, 200);
+            const planeMaterial = new THREE.MeshPhongMaterial({ color: 0x000000, shininess: 150 });
+            const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+            plane.rotation.x = -Math.PI / 2;
+            plane.position.y = -0.1;
+            plane.receiveShadow = true;
+            scene.add(plane);
+
+
+            gridHelper = new THREE.GridHelper(200, 100, COLOR_CYAN, 0x111111);
+            gridHelper.position.y = 0;
+            scene.add(gridHelper);
+
+
+            createBike();
+
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('touchmove', onTouchMove, { passive: false });
+            document.addEventListener('touchstart', onTouchMove, { passive: false });
+            window.addEventListener('resize', onWindowResize);
+        }
+
+
+        // --- YARDIMCI FONKSİYONLAR ---
+        
+        function createLogoTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 64;
+            const context = canvas.getContext('2d');
+            context.fillStyle = '#004444';
+            context.fillRect(0, 0, 256, 64);
+            context.strokeStyle = '#00ffff';
+            context.lineWidth = 4;
+            context.strokeRect(0,0,256,64);
+            context.font = 'bold 40px Arial';
+            context.fillStyle = '#ffffff';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText('Bitget GP', 128, 32);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+
+        function createBGBTokenMesh() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+
+
+            // Arka plan (Token Rengi)
+            ctx.fillStyle = '#00ffff'; 
+            ctx.beginPath();
+            ctx.arc(64, 64, 64, 0, Math.PI * 2);
+            ctx.fill();
+
+
+            // Çerçeve
+            ctx.strokeStyle = '#008888';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.arc(64, 64, 60, 0, Math.PI * 2);
+            ctx.stroke();
+
+
+            // BGB Yazısı
+            ctx.fillStyle = '#000000';
+            ctx.font = 'Bold 40px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('BGB', 64, 64);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+
+
+            // Geometri
+            const geometry = new THREE.CylinderGeometry(0.4, 0.4, 0.1, 32);
+            geometry.rotateX(Math.PI / 2); // Yüzü kameraya çevir
+
+
+            // Materyaller: [Side, Top, Bottom]
+            const matFace = new THREE.MeshBasicMaterial({ map: texture });
+            const matSide = new THREE.MeshBasicMaterial({ color: 0x00aaaa }); 
+
+
+            const materials = [matSide, matFace, matFace];
+
+
+            const mesh = new THREE.Mesh(geometry, materials);
+            mesh.userData.isBGBToken = true;
+            
+            return mesh;
+        }
+
+
+        function createPumpSprite() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+
+
+            ctx.fillStyle = '#00ff00';
+            ctx.shadowColor = '#00ff00';
+            ctx.shadowBlur = 15;
+            ctx.font = 'Bold 40px Courier New';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            ctx.fillText('PUMP', 64, 50);
+            ctx.beginPath();
+            ctx.moveTo(64, 90);
+            ctx.lineTo(54, 75);
+            ctx.lineTo(74, 75);
+            ctx.closePath();
+            ctx.fill();
+
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(2.5, 2.5, 1);
+            return sprite;
+        }
+
+
+        function createDumpSprite() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+
+
+            ctx.fillStyle = '#ff0000'; 
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 15;
+            ctx.font = 'Bold 40px Courier New';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            ctx.fillText('DUMP', 64, 50);
+            ctx.beginPath();
+            ctx.moveTo(64, 75);
+            ctx.lineTo(54, 90);
+            ctx.lineTo(74, 90);
+            ctx.closePath();
+            ctx.fill();
+
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(2.5, 2.5, 1);
+            return sprite;
+        }
+
+
+        function createTextSprite(text, color) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+            
+            context.font = "Bold 80px Arial";
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillStyle = color; 
+            context.fillText(text, 64, 64);
+
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture });
+            const sprite = new THREE.Sprite(material);
+            sprite.scale.set(1.5, 1.5, 1);
+            return sprite;
+        }
+        
+        function createExplosion(position, color = COLOR_CYAN) {
+            const particleCount = 10;
+            for (let i = 0; i < particleCount; i++) {
+                const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+                const material = new THREE.MeshBasicMaterial({ color: color });
+                const particle = new THREE.Mesh(geometry, material);
+                particle.position.copy(position);
+                particle.userData = {
+                    velocity: new THREE.Vector3((Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5, (Math.random()-0.5)*0.5),
+                    life: 1.0 
+                };
+                particles.push(particle);
+                scene.add(particle);
+            }
+        }
+
+
+        // --- YENİ GELİŞMİŞ MOTOSİKLET FONKSİYONU ---
+        function createBike() {
+            if(bike) scene.remove(bike);
+
+
+            bike = new THREE.Group();
+
+
+            // Malzemeler
+            const matNeon = new THREE.MeshPhongMaterial({ 
+                color: COLOR_CYAN, 
+                emissive: 0x002222, 
+                shininess: 100 
+            });
+            const matDark = new THREE.MeshPhongMaterial({ 
+                color: 0x111111, 
+                shininess: 50 
+            });
+            const matGlass = new THREE.MeshPhongMaterial({ 
+                color: 0x000000, 
+                opacity: 0.6, 
+                transparent: true 
+            });
+
+
+            // 1. Motor Bloğu ve Alt Şase
+            const chassisGeo = new THREE.BoxGeometry(0.45, 0.3, 0.9);
+            const chassis = new THREE.Mesh(chassisGeo, matDark);
+            chassis.position.set(0, 0.35, 0);
+            bike.add(chassis);
+
+
+            // 2. Yakıt Tankı
+            const tankGeo = new THREE.SphereGeometry(0.28, 32, 32);
+            const tank = new THREE.Mesh(tankGeo, matNeon);
+            tank.scale.set(0.9, 0.7, 1.8);
+            tank.position.set(0, 0.55, 0.1);
+            bike.add(tank);
+
+
+            // 3. Ön Kaporta (Fairing)
+            const noseGeo = new THREE.ConeGeometry(0.3, 0.7, 32);
+            const nose = new THREE.Mesh(noseGeo, matNeon);
+            nose.rotation.x = -Math.PI / 2.2; 
+            nose.position.set(0, 0.5, -0.55);
+            bike.add(nose);
+
+
+            // 4. Rüzgarlık
+            const windshieldGeo = new THREE.PlaneGeometry(0.35, 0.3);
+            const windshield = new THREE.Mesh(windshieldGeo, matGlass);
+            windshield.position.set(0, 0.75, -0.5);
+            windshield.rotation.x = -Math.PI / 4;
+            bike.add(windshield);
+
+
+            // --- GİDON (HANDLEBARS) ---
+            const handlebarMat = new THREE.MeshPhongMaterial({ color: 0x444444, shininess: 30 });
+            const gripMat = new THREE.MeshPhongMaterial({ color: 0x111111, shininess: 10 });
+
+
+            // Ana Gidon Borusu
+            const barGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.5);
+            const bar = new THREE.Mesh(barGeo, handlebarMat);
+            bar.rotation.z = Math.PI / 2;
+            bar.position.set(0, 0.65, -0.3);
+            bike.add(bar);
+
+
+            // Elcikler
+            const gripGeo = new THREE.CylinderGeometry(0.025, 0.025, 0.1);
+            const gripL = new THREE.Mesh(gripGeo, gripMat);
+            gripL.rotation.z = Math.PI / 2;
+            gripL.position.set(-0.2, 0.65, -0.3);
+            bike.add(gripL);
+
+
+            const gripR = new THREE.Mesh(gripGeo, gripMat);
+            gripR.rotation.z = Math.PI / 2;
+            gripR.position.set(0.2, 0.65, -0.3);
+            bike.add(gripR);
+
+
+            // --- SÜRÜCÜ FİGÜRÜ (RIDER) ---
+            const riderMat = new THREE.MeshPhongMaterial({ color: COLOR_CYAN, emissive: 0x002222, shininess: 80 });
+            
+            // Gövde
+            const torsoGeo = new THREE.BoxGeometry(0.4, 0.2, 0.5);
+            const torso = new THREE.Mesh(torsoGeo, riderMat);
+            torso.position.set(0, 0.65, 0.1);
+            torso.rotation.x = 0.2; 
+            bike.add(torso);
+
+
+            // Kask
+            const helmetGeo = new THREE.SphereGeometry(0.15, 16, 16);
+            const helmet = new THREE.Mesh(helmetGeo, riderMat);
+            helmet.position.set(0, 0.8, -0.15);
+            bike.add(helmet);
+
+
+            // Kollar
+            const armGeo = new THREE.CylinderGeometry(0.05, 0.04, 0.35);
+            armGeo.rotateX(Math.PI / 2); 
+
+
+            const armL = new THREE.Mesh(armGeo, riderMat);
+            armL.position.set(-0.15, 0.7, -0.1);
+            armL.rotation.y = Math.PI / 8; 
+            armL.rotation.z = -Math.PI / 6; 
+            bike.add(armL);
+
+
+            const armR = new THREE.Mesh(armGeo, riderMat);
+            armR.position.set(0.15, 0.7, -0.1);
+            armR.rotation.y = -Math.PI / 8;
+            armR.rotation.z = Math.PI / 6; 
+            bike.add(armR);
+
+
+            // 5. Kuyruk
+            const tailGeo = new THREE.ConeGeometry(0.15, 0.5, 4); 
+            const tail = new THREE.Mesh(tailGeo, matNeon);
+            tail.rotation.x = -Math.PI / 1.8; 
+            tail.position.set(0, 0.6, 0.6);
+            bike.add(tail);
+
+
+            // 6. Koltuk
+            const seatGeo = new THREE.BoxGeometry(0.3, 0.05, 0.4);
+            const seat = new THREE.Mesh(seatGeo, matDark);
+            seat.position.set(0, 0.58, 0.3);
+            seat.rotation.x = 0.1;
+            bike.add(seat);
+
+
+            // 7. Ön Çatallar
+            const forkGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.7);
+            const forkL = new THREE.Mesh(forkGeo, matDark);
+            forkL.position.set(-0.15, 0.4, -0.7);
+            forkL.rotation.x = -0.3;
+            bike.add(forkL);
+            
+            const forkR = new THREE.Mesh(forkGeo, matDark);
+            forkR.position.set(0.15, 0.4, -0.7);
+            forkR.rotation.x = -0.3;
+            bike.add(forkR);
+
+
+            // 8. Tekerlekler
+            const wheelGeo = new THREE.TorusGeometry(0.32, 0.14, 16, 32);
+            const wheelMat = new THREE.MeshPhongMaterial({ color: 0x1a1a1a });
+            const rimMat = new THREE.MeshBasicMaterial({ color: COLOR_CYAN });
+
+
+            // Arka Teker
+            const rearWheel = new THREE.Mesh(wheelGeo, wheelMat);
+            rearWheel.position.set(0, 0.32, 0.75);
+            rearWheel.rotation.y = Math.PI / 2;
+            const rearRim = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.02, 16, 32), rimMat);
+            rearRim.rotation.y = Math.PI / 2;
+            rearRim.position.set(0, 0.32, 0.75);
+            bike.add(rearWheel);
+            bike.add(rearRim);
+
+
+            // Ön Teker
+            const frontWheel = new THREE.Mesh(wheelGeo, wheelMat);
+            frontWheel.position.set(0, 0.32, -0.9);
+            frontWheel.rotation.y = Math.PI / 2;
+            const frontRim = new THREE.Mesh(new THREE.TorusGeometry(0.25, 0.02, 16, 32), rimMat);
+            frontRim.rotation.y = Math.PI / 2;
+            frontRim.position.set(0, 0.32, -0.9);
+            bike.add(frontWheel);
+            bike.add(frontRim);
+
+
+            // 9. Yan Logolar
+            const logoTexture = createLogoTexture();
+            const logoMat = new THREE.MeshBasicMaterial({ map: logoTexture, transparent: true });
+            const sidePanelGeo = new THREE.PlaneGeometry(0.6, 0.2);
+            
+            const leftLogo = new THREE.Mesh(sidePanelGeo, logoMat);
+            leftLogo.position.set(-0.25, 0.5, -0.1);
+            leftLogo.rotation.y = -Math.PI / 2;
+            bike.add(leftLogo);
+
+
+            const rightLogo = new THREE.Mesh(sidePanelGeo, logoMat);
+            rightLogo.position.set(0.25, 0.5, -0.1);
+            rightLogo.rotation.y = Math.PI / 2;
+            rightLogo.scale.x = -1; 
+            bike.add(rightLogo);
+
+
+            // 10. Egzoz
+            const exhaustGeo = new THREE.CylinderGeometry(0.04, 0.06, 0.6);
+            exhaustGeo.rotateX(Math.PI / 2);
+            const exhaustMat = new THREE.MeshPhongMaterial({ color: 0x555555, shininess: 200 });
+            
+            const exhaust = new THREE.Mesh(exhaustGeo, exhaustMat);
+            exhaust.position.set(0.25, 0.4, 0.6);
+            exhaust.rotation.x = -0.2; 
+            exhaust.rotation.y = 0.1; 
+            bike.add(exhaust);
+
+
+            // Işık İzi
+            const trailGeo = new THREE.PlaneGeometry(0.3, 3);
+            const trailMat = new THREE.MeshBasicMaterial({ color: COLOR_CYAN, transparent: true, opacity: 0.15, side: THREE.DoubleSide });
+            const trail = new THREE.Mesh(trailGeo, trailMat);
+            trail.rotation.x = -Math.PI / 2;
+            trail.position.set(0, 0.05, 2.3);
+            bike.add(trail);
+
+
+            // Kalkan Mesh
+            const shieldGeo = new THREE.SphereGeometry(1.1, 32, 32);
+            const shieldMat = new THREE.MeshBasicMaterial({ 
+                color: COLOR_BLUE, 
+                transparent: true, 
+                opacity: 0.3,
+                wireframe: true
+            });
+            shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+            shieldMesh.position.set(0, 0.5, 0);
+            shieldMesh.visible = false;
+            bike.add(shieldMesh);
+
+
+            scene.add(bike);
+        }
+
+
+        function spawnObject() {
+            if (!isGameRunning || isCrashed) return;
+            
+            const rand = Math.random();
+            const lane = Math.floor(Math.random() * 3) - 1; 
+            const xPos = lane * 2.5; 
+            
+            let mesh;
+            let type = 'obstacle';
+
+
+            if (rand < 0.40) {
+                type = 'coin';
+                mesh = createBGBTokenMesh();
+                mesh.userData = { type: 'coin', speedRot: 0.05 };
+            } 
+            else if (rand < 0.48) {
+                type = 'pump'; 
+                mesh = createPumpSprite(); 
+                mesh.userData = { type: 'pump' };
+            }
+            else if (rand < 0.56) {
+                type = 'dump'; 
+                mesh = createDumpSprite();
+                mesh.userData = { type: 'dump' };
+            }
+            else if (rand < 0.60) {
+                type = 'shield';
+                mesh = createTextSprite('🛡️', 'blue');
+                mesh.userData = { type: 'shield' };
+            }
+            else {
+                type = 'obstacle';
+                const geometry = new THREE.BoxGeometry(1, 1, 1);
+                const material = new THREE.MeshPhongMaterial({ color: COLOR_NEON_RED, emissive: 0x330000 });
+                mesh = new THREE.Mesh(geometry, material);
+                mesh.userData = { type: 'obstacle' };
+                mesh.castShadow = true;
+            }
+
+
+            mesh.position.set(xPos, 0.6, -60);
+            scene.add(mesh);
+            objects.push(mesh);
+        }
+
+
+        function updateScore() {
+            const scoreBoard = document.getElementById('score-board');
+            if (scoreBoard) {
+                scoreBoard.innerText = 'BGB: ' + score;
+            }
+        }
+        
+        function activateShield() {
+            shieldActive = true;
+            shieldTimer = 5.0; 
+            if (shieldMesh) shieldMesh.visible = true;
+            const shieldStatus = document.getElementById('shield-status');
+            if (shieldStatus) shieldStatus.style.display = 'block';
+        }
+
+
+        function deactivateShield() {
+            shieldActive = false;
+            if (shieldMesh) shieldMesh.visible = false;
+            const shieldStatus = document.getElementById('shield-status');
+            if (shieldStatus) shieldStatus.style.display = 'none';
+        }
+        
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.position.add(p.userData.velocity);
+                p.userData.life -= 0.05;
+                p.scale.multiplyScalar(0.9); 
+                if (p.userData.life <= 0) {
+                    scene.remove(p);
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+
+        function gameOver() {
+            isCrashed = true;
+            const finalScore = document.getElementById('final-score');
+            if (finalScore) finalScore.innerText = score;
+            
+            const gameOverModal = document.getElementById('game-over-modal');
+            if (gameOverModal) gameOverModal.style.display = 'block';
+            
+            const saveScoreSection = document.getElementById('save-score-section');
+            if (saveScoreSection) saveScoreSection.style.display = 'block'; 
+            
+            const geminiBtn = document.getElementById('gemini-button');
+            if (geminiBtn) geminiBtn.style.display = 'block';
+            
+            const shareBtn = document.getElementById('share-btn');
+            if (shareBtn) shareBtn.style.display = 'none'; // Yeni oyun için gizle
+            
+            const commentaryOutput = document.getElementById('commentary-output');
+            if (commentaryOutput) {
+                commentaryOutput.style.display = 'none';
+                commentaryOutput.innerHTML = '';
+            }
+            
+            const commentaryLoading = document.getElementById('commentary-loading');
+            if (commentaryLoading) commentaryLoading.style.display = 'none';
+
+
+            createExplosion(bike.position);
+            if (bike) bike.visible = false;
+        }
+        
+        function animate() {
+            frameId = requestAnimationFrame(animate);
+
+
+            const delta = clock.getDelta();
+
+
+            if (!isGameRunning) {
+                gridHelper.position.z = (gridHelper.position.z + 0.1) % 10;
+                renderer.render(scene, camera);
+                return;
+            }
+
+
+            if (isCrashed) {
+                updateParticles();
+                renderer.render(scene, camera);
+                return;
+            }
+
+
+            if (shieldActive) {
+                shieldTimer -= delta;
+                shieldMesh.rotation.y += 2 * delta; 
+                if (shieldTimer <= 0) {
+                    deactivateShield();
+                }
+            }
+
+
+            if (speed < 1.2) speed += 0.0002;
+
+
+            gridHelper.position.z = (gridHelper.position.z + speed) % 10;
+            
+            bike.position.x += (targetX - bike.position.x) * 0.1;
+            bike.rotation.z = (bike.position.x - targetX) * 0.5; 
+            bike.rotation.y = (targetX - bike.position.x) * 0.1;
+
+
+            if (Math.random() < 0.03 + (score * 0.0002)) spawnObject();
+
+
+            for (let i = objects.length - 1; i >= 0; i--) {
+                let obj = objects[i];
+                obj.position.z += speed;
+
+
+                if (obj.userData.type === 'coin') {
+                    obj.rotation.y += 0.05; 
+                }
+                
+                if (['pump', 'dump', 'shield'].includes(obj.userData.type)) {
+                    obj.position.y = 0.6 + Math.sin(Date.now() * 0.005) * 0.1; 
+                }
+
+
+                const distance = bike.position.distanceTo(obj.position);
+                
+                if (distance < 1.2) { 
+                    const type = obj.userData.type;
+
+
+                    if (type === 'coin') {
+                        score += 10;
+                        updateScore();
+                        createExplosion(obj.position, COLOR_CYAN);
+                        scene.remove(obj);
+                        objects.splice(i, 1);
+                    } 
+                    else if (type === 'pump') { 
+                        score = Math.floor(score * 1.10);
+                        updateScore();
+                        createExplosion(obj.position, COLOR_GREEN);
+                        scene.remove(obj);
+                        objects.splice(i, 1);
+                    }
+                    else if (type === 'dump') { 
+                        score = Math.floor(score * 0.90);
+                        updateScore();
+                        createExplosion(obj.position, COLOR_NEON_RED);
+                        scene.remove(obj);
+                        objects.splice(i, 1);
+                    }
+                    else if (type === 'shield') { 
+                        activateShield();
+                        createExplosion(obj.position, COLOR_BLUE);
+                        scene.remove(obj);
+                        objects.splice(i, 1);
+                    }
+                    else if (type === 'obstacle') {
+                        if (shieldActive) {
+                            createExplosion(obj.position, COLOR_NEON_RED);
+                            scene.remove(obj);
+                            objects.splice(i, 1);
+                        } else {
+                            gameOver();
+                        }
+                    }
+                } 
+                else if (obj.position.z > 10) {
+                    scene.remove(obj);
+                    objects.splice(i, 1);
+                }
+            }
+
+
+            updateParticles();
+            renderer.render(scene, camera);
+        }
+
+
+        // KÜRESEL FONKSİYON TANIMI
+        window.startGame = function() {
+            const startScreen = document.getElementById('start-screen');
+            if (startScreen) startScreen.style.display = 'none';
+            isGameRunning = true;
+            isCrashed = false;
+            speed = 0.4; 
+            clock.start();
+        };
+
+
+        window.resetGame = function() {
+            objects.forEach(obj => scene.remove(obj));
+            particles.forEach(p => scene.remove(p));
+            objects = [];
+            particles = [];
+            
+            score = 0;
+            speed = 0.4; 
+            deactivateShield();
+            
+            targetX = 0;
+            if (bike) {
+                bike.position.set(0, 0, 0);
+                bike.rotation.set(0, 0, 0);
+                bike.visible = true;
+            } else {
+                // Should not happen if init passed, but failsafe
+                createBike();
+            }
+            
+            updateScore();
+            const gameOverModal = document.getElementById('game-over-modal');
+            if (gameOverModal) gameOverModal.style.display = 'none';
+            
+            const leaderboardModal = document.getElementById('leaderboard-modal');
+            if (leaderboardModal) leaderboardModal.style.display = 'none';
+            
+            const saveScoreSection = document.getElementById('save-score-section');
+            if (saveScoreSection) saveScoreSection.style.display = 'block'; 
+            
+            const playerNameInput = document.getElementById('player-name');
+            if (playerNameInput) playerNameInput.value = ""; 
+            
+            // Telegram kullanıcısı ise ismi tekrar doldur (Güvenli Kontrol)
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    if (playerNameInput) playerNameInput.value = tg.initDataUnsafe.user.first_name;
+                }
+            }
+            
+            const geminiBtn = document.getElementById('gemini-button');
+            if (geminiBtn) geminiBtn.style.display = 'block';
+            
+            const shareBtn = document.getElementById('share-btn');
+            if (shareBtn) shareBtn.style.display = 'none';
+            
+            const commentaryOutput = document.getElementById('commentary-output');
+            if (commentaryOutput) commentaryOutput.style.display = 'none';
+            
+            const commentaryLoading = document.getElementById('commentary-loading');
+            if (commentaryLoading) commentaryLoading.style.display = 'none';
+
+
+            isGameRunning = true;
+            isCrashed = false;
+        };
+
+
+        function setTargetFromX(clientX) {
+            let normalizedX = (clientX / window.innerWidth) * 2 - 1;
+            targetX = normalizedX * 2.8; 
+            targetX = Math.max(-2.8, Math.min(2.8, targetX));
+        }
+
+
+        function onMouseMove(event) {
+            if (!isGameRunning || isInputActive || isCrashed) return;
+            setTargetFromX(event.clientX);
+        }
+
+
+        function onTouchMove(event) {
+            if (!isGameRunning || isInputActive || isCrashed) return;
+            event.preventDefault();
+            setTargetFromX(event.touches[0].clientX);
+        }
+
+
+        function onKeyDown(event) {
+            if (!isGameRunning || isInputActive || isCrashed) return;
+            const step = 2.0;
+            switch(event.key) {
+                case 'ArrowLeft': case 'a': targetX -= step; break;
+                case 'ArrowRight': case 'd': targetX += step; break;
+            }
+            targetX = Math.max(-2.8, Math.min(2.8, targetX));
+        }
+
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+
+    </script>
+</body>
+</html>
